@@ -5,15 +5,17 @@ import BuyerSearchBar from '../ui/BuyerSearchBar';
 import ProductGrid from '../ui/ProductGrid';
 import FloatingMiniCart from '../ui/FloatingMiniCart';
 import ReviewPopup from '../ui/ReviewPopup';
+import ProductPopup from '../ui/ProductPopup';
 import { createInvoiceFromItems } from '../utils/invoiceUtils';
 
 const BuyerDashboard = ({ onBuyNowSingleItem, onOpenCart }) => {
   const { user, allUsers } = useAuth();
-  const { products, reviews, addReview, addToCart, sendMessage } = useData();
+  const { products, reviews, messages, addReview, addToCart, sendMessage } = useData();
   const [quantityById, setQuantityById] = useState({});
   const [filters, setFilters] = useState({ category: '', min: '', max: '', location: '' });
   const [search, setSearch] = useState({ query: '', by: 'all' });
   const [reviewProduct, setReviewProduct] = useState(null);
+  const [popupProduct, setPopupProduct] = useState(null);
   const [showPurchases, setShowPurchases] = useState(false);
   const [purchases, setPurchases] = useState([]);
 
@@ -178,41 +180,11 @@ const BuyerDashboard = ({ onBuyNowSingleItem, onOpenCart }) => {
         setQuantityById={setQuantityById}
         onAddToCart={handleAddToCart}
         onOrder={handleOrder}
-        onMessage={(p) => user && sendMessage({ 
-          messageId: Date.now().toString(),
-          buyerId: user.userId || user.email || user.id,
-          buyerName: user.name,
-          farmerId: p.farmerId || p.ownerId || '',
-          farmerName: p.farmerName || '',
-          productId: p.id,
-          content: `Inquiry about ${p.name}`,
-          timestamp: Date.now(),
-          // Backward compatibility
-          fromUserId: user.userId || user.email || user.id,
-          fromUserName: user.name,
-          toUserId: p.farmerId || p.ownerId || '',
-          body: `Inquiry about ${p.name}`
-        })}
+        onImageClick={(p) => setPopupProduct(p)}
         onReview={handleReview}
         isLoggedIn={!!user}
       />
       <FloatingMiniCart onCheckout={handleCheckout} />
-      {user && (
-        <div style={{ marginTop: 16 }}>
-          <h3>Reviews</h3>
-          {filtered.map((p) => (
-            <div key={p.id} style={{ marginBottom: 8 }}>
-              <em>{p.name}</em>
-              <button style={{ marginLeft: 8 }} onClick={() => addReview({ productId: p.id, farmerId: p.ownerId, buyerId: user.id, rating: 5, comment: 'Great quality!' })}>Give 5★</button>
-              <ul>
-                {reviews.filter((r) => r.productId === p.id).map((r) => (
-                  <li key={r.id}>{r.rating}★ — {r.comment}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
       
       {/* Review Popup */}
       {reviewProduct && (
@@ -220,6 +192,20 @@ const BuyerDashboard = ({ onBuyNowSingleItem, onOpenCart }) => {
           product={reviewProduct}
           onClose={() => setReviewProduct(null)}
           onSubmit={handleSubmitReview}
+        />
+      )}
+
+      {/* Product Popup (Reviews & Messages) */}
+      {popupProduct && (
+        <ProductPopup
+          product={popupProduct}
+          user={user}
+          reviews={reviews}
+          messages={messages}
+          onClose={() => setPopupProduct(null)}
+          onSendMessage={(messageData) => {
+            sendMessage(messageData);
+          }}
         />
       )}
 

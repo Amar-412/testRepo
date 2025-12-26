@@ -10,7 +10,7 @@ const Crops = () => {
     try {
       const response = await axios.get('https://api.data.gov.in/resource/35985678-0d79-46b4-9ed6-6f13308a1d24?api-key=579b464db66ec23bdd0000011a3d34ba831d462471750c44dc8751a1&format=csv&filters%5BState.keyword%5D=Jharkhand&filters%5BDistrict.keyword%5D=bokaro&filters%5BCommodity', {
         params: {
-          apiKey: '579b464db66ec23bdd0000011a3d34ba831d462471750c44dc8751a1', // Replace with your actual API key
+          apiKey: '579b464db66ec23bdd000001443c16d4848747457cf0540875fae672', // Replace with your actual API key
         },
       });
 

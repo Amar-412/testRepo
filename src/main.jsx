@@ -6,12 +6,7 @@ import { migrateData } from './utils/dataMigration'
 
 migrateData();
 
-
 const GOOGLE_CLIENT_ID = '94330046163-dv3qulqstsntu5fe1aarkpiq12slrqas.apps.googleusercontent.com';
-
-
-
-
 
 
 createRoot(document.getElementById('root')).render(

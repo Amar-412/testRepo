@@ -9,6 +9,8 @@ const FarmerDashboard = () => {
   const [showMessages, setShowMessages] = useState(false);
   const [showOrders, setShowOrders] = useState(false);
   const [myOrders, setMyOrders] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [replyText, setReplyText] = useState({});
 
   useEffect(() => {
     if (user) {
@@ -827,75 +829,277 @@ const FarmerDashboard = () => {
               overflowY: 'auto',
               paddingRight: '8px'
             }}>
-              {messages.filter((m) => 
-                m.farmerId === user?.userId || 
-                m.farmerId === user?.email || 
-                m.farmerId === user?.id ||
-                m.toUserId === user?.id ||
-                m.toUserId === user?.userId ||
-                m.toUserId === user?.email
-              ).length === 0 ? (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '40px',
-                  color: 'white',
-                  fontStyle: 'italic',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.1)'
-                }}>
-                  No messages yet. Customer inquiries will appear here!
-                </div>
-              ) : (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px'
-                }}>
-                  {messages
-                    .filter((m) => 
-                      m.farmerId === user?.userId || 
-                      m.farmerId === user?.email || 
-                      m.farmerId === user?.id ||
-                      m.toUserId === user?.id ||
-                      m.toUserId === user?.userId ||
-                      m.toUserId === user?.email
-                    )
-                    .map((m) => (
-                      <div key={m.id} style={{
+              {(() => {
+                const farmerId = user?.userId || user?.email || user?.id;
+                const farmerMessages = messages.filter((m) => 
+                  m.farmerId === farmerId || 
+                  m.toUserId === farmerId
+                );
+
+                if (farmerMessages.length === 0) {
+                  return (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '40px',
+                      color: 'white',
+                      fontStyle: 'italic',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      No messages yet. Customer inquiries will appear here!
+                    </div>
+                  );
+                }
+
+                // Group messages by productId and buyerId
+                const conversations = {};
+                farmerMessages.forEach((m) => {
+                  const productId = m.productId || 'unknown';
+                  const buyerId = m.buyerId || m.fromUserId || 'unknown';
+                  const key = `${productId}_${buyerId}`;
+                  
+                  if (!conversations[key]) {
+                    conversations[key] = {
+                      productId,
+                      buyerId,
+                      buyerName: m.buyerName || m.fromUserName || 'Unknown Buyer',
+                      productName: m.productName || products.find(p => p.id === productId)?.name || 'Unknown Product',
+                      messages: []
+                    };
+                  }
+                  conversations[key].messages.push(m);
+                });
+
+                // Sort messages within each conversation by timestamp
+                Object.values(conversations).forEach(conv => {
+                  conv.messages.sort((a, b) => (a.timestamp || a.createdAt || 0) - (b.timestamp || b.createdAt || 0));
+                });
+
+                const conversationList = Object.values(conversations);
+
+                if (selectedConversation) {
+                  const conv = conversationList.find(c => 
+                    c.productId === selectedConversation.productId && 
+                    c.buyerId === selectedConversation.buyerId
+                  );
+                  
+                  if (!conv) {
+                    setSelectedConversation(null);
+                    return null;
+                  }
+
+                  const handleReply = (e) => {
+                    e.preventDefault();
+                    const replyKey = `${conv.productId}_${conv.buyerId}`;
+                    const text = replyText[replyKey] || '';
+                    if (!text.trim()) return;
+
+                    sendMessage({
+                      messageId: Date.now().toString(),
+                      buyerId: conv.buyerId,
+                      buyerName: conv.buyerName,
+                      farmerId: farmerId,
+                      farmerName: user?.name || 'Farmer',
+                      productId: conv.productId,
+                      productName: conv.productName,
+                      content: text.trim(),
+                      timestamp: Date.now(),
+                      fromUserId: farmerId,
+                      fromUserName: user?.name || 'Farmer',
+                      toUserId: conv.buyerId,
+                      body: text.trim(),
+                      senderRole: 'farmer'
+                    });
+
+                    setReplyText({ ...replyText, [replyKey]: '' });
+                  };
+
+                  return (
+                    <div>
+                      <button
+                        onClick={() => setSelectedConversation(null)}
+                        style={{
+                          marginBottom: '16px',
+                          padding: '8px 16px',
+                          background: 'transparent',
+                          color: '#5eed3a',
+                          border: '1px solid #5eed3a',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = '#5eed3a';
+                          e.target.style.color = 'black';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent';
+                          e.target.style.color = '#5eed3a';
+                        }}
+                      >
+                        ← Back to Conversations
+                      </button>
+                      <div style={{
                         background: 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: '16px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        padding: '20px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                        position: 'relative'
+                        borderRadius: '12px',
+                        padding: '16px',
+                        marginBottom: '16px'
                       }}>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: '12px'
-                        }}>
+                        <div style={{ color: 'white', fontWeight: '600', marginBottom: '8px' }}>
+                          Product: {conv.productName}
+                        </div>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px' }}>
+                          Buyer: {conv.buyerName}
+                        </div>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
+                        marginBottom: '16px',
+                        maxHeight: '300px',
+                        overflowY: 'auto',
+                        padding: '12px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '8px'
+                      }}>
+                        {conv.messages.map((msg) => {
+                          // Check if message was sent by current user (farmer)
+                          // Message is from farmer if: senderRole is 'farmer' OR fromUserId matches farmerId
+                          const isSentByCurrentUser = msg.senderRole === 'farmer' || 
+                                                      msg.fromUserId === farmerId || 
+                                                      (msg.farmerId === farmerId && msg.senderRole !== 'buyer');
+                          return (
+                            <div
+                              key={msg.id}
+                              style={{
+                                display: 'flex',
+                                justifyContent: isSentByCurrentUser ? 'flex-end' : 'flex-start'
+                              }}
+                            >
+                              <div style={{
+                                maxWidth: '70%',
+                                padding: '10px 14px',
+                                borderRadius: '12px',
+                                background: isSentByCurrentUser ? '#5eed3a' : 'rgba(255, 255, 255, 0.1)',
+                                color: isSentByCurrentUser ? 'black' : 'white',
+                                fontSize: '14px',
+                                lineHeight: '1.5'
+                              }}>
+                                <div style={{
+                                  fontWeight: '600',
+                                  marginBottom: '4px',
+                                  fontSize: '12px',
+                                  opacity: 0.8
+                                }}>
+                                  {isSentByCurrentUser ? 'You' : (msg.buyerName || conv.buyerName || 'Buyer')}
+                                </div>
+                                <div>{msg.content || msg.body}</div>
+                                <div style={{
+                                  fontSize: '11px',
+                                  marginTop: '4px',
+                                  opacity: 0.7
+                                }}>
+                                  {new Date(msg.timestamp || msg.createdAt || Date.now()).toLocaleTimeString()}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <form onSubmit={handleReply} style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                          type="text"
+                          value={replyText[`${conv.productId}_${conv.buyerId}`] || ''}
+                          onChange={(e) => setReplyText({
+                            ...replyText,
+                            [`${conv.productId}_${conv.buyerId}`]: e.target.value
+                          })}
+                          placeholder="Type your reply..."
+                          style={{
+                            flex: 1,
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border: '2px solid rgba(255, 255, 255, 0.2)',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            color: 'white',
+                            fontSize: '14px',
+                            outline: 'none',
+                            transition: 'border-color 0.3s ease'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#5eed3a'}
+                          onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)'}
+                        />
+                        <button
+                          type="submit"
+                          disabled={!replyText[`${conv.productId}_${conv.buyerId}`]?.trim()}
+                          style={{
+                            padding: '10px 20px',
+                            background: replyText[`${conv.productId}_${conv.buyerId}`]?.trim() ? '#5eed3a' : 'rgba(255, 255, 255, 0.1)',
+                            color: replyText[`${conv.productId}_${conv.buyerId}`]?.trim() ? 'black' : 'rgba(255, 255, 255, 0.5)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: replyText[`${conv.productId}_${conv.buyerId}`]?.trim() ? 'pointer' : 'not-allowed',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (replyText[`${conv.productId}_${conv.buyerId}`]?.trim()) {
+                              e.target.style.background = '#4ddb2a';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (replyText[`${conv.productId}_${conv.buyerId}`]?.trim()) {
+                              e.target.style.background = '#5eed3a';
+                            }
+                          }}
+                        >
+                          Reply
+                        </button>
+                      </form>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    {conversationList.map((conv) => {
+                      const lastMessage = conv.messages[conv.messages.length - 1];
+                      return (
+                        <div
+                          key={`${conv.productId}_${conv.buyerId}`}
+                          onClick={() => setSelectedConversation(conv)}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            padding: '16px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                            e.currentTarget.style.transform = 'translateX(4px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                            e.currentTarget.style.transform = 'translateX(0)';
+                          }}
+                        >
                           <div style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px'
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            marginBottom: '8px'
                           }}>
-                            <div style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '50%',
-                              background: '#5eed3a',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'black',
-                              fontWeight: 'bold',
-                              fontSize: '16px'
-                            }}>
-                              {m.fromUserName ? m.fromUserName.charAt(0).toUpperCase() : 'U'}
-                            </div>
                             <div>
                               <div style={{
                                 fontWeight: '600',
@@ -903,78 +1107,38 @@ const FarmerDashboard = () => {
                                 color: 'white',
                                 marginBottom: '4px'
                               }}>
-                                {m.fromUserName || 'Anonymous'}
+                                {conv.buyerName}
                               </div>
                               <div style={{
-                                fontSize: '12px',
-                                color: 'rgba(255, 255, 255, 0.8)'
+                                fontSize: '14px',
+                                color: '#5eed3a',
+                                marginBottom: '4px'
                               }}>
-                                {new Date(m.createdAt).toLocaleDateString()} at {new Date(m.createdAt).toLocaleTimeString()}
+                                {conv.productName}
                               </div>
+                            </div>
+                            <div style={{
+                              fontSize: '12px',
+                              color: 'rgba(255, 255, 255, 0.6)'
+                            }}>
+                              {lastMessage && new Date(lastMessage.timestamp || lastMessage.createdAt || Date.now()).toLocaleDateString()}
                             </div>
                           </div>
                           <div style={{
-                            display: 'flex',
-                            gap: '8px'
+                            fontSize: '14px',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
                           }}>
-                            <button style={{
-                              padding: '6px 12px',
-                              background: 'transparent',
-                              color: '#5eed3a',
-                              border: '1px solid #5eed3a',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.background = '#5eed3a';
-                              e.target.style.color = 'black';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.background = 'transparent';
-                              e.target.style.color = '#5eed3a';
-                            }}>
-                              Reply
-                            </button>
-                            <button style={{
-                              padding: '6px 12px',
-                              background: 'transparent',
-                              color: 'rgba(255, 255, 255, 0.8)',
-                              border: '1px solid rgba(255, 255, 255, 0.3)',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.target.style.background = 'rgba(255, 255, 255, 0.1)';
-                              e.target.style.borderColor = 'rgba(255, 255, 255, 0.5)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.background = 'transparent';
-                              e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                            }}>
-                              Mark Read
-                            </button>
+                            {lastMessage?.content || lastMessage?.body || 'No message content'}
                           </div>
                         </div>
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          borderRadius: '8px',
-                          padding: '16px',
-                          fontSize: '14px',
-                          color: 'white',
-                          lineHeight: '1.5'
-                        }}>
-                          {m.body}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

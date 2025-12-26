@@ -17,15 +17,48 @@ const gridStyle = {
   gap: 20,
 };
 
-const ProductGrid = ({ products, quantityById, setQuantityById, onAddToCart, onOrder, onMessage, onReview, isLoggedIn }) => {
+const ProductGrid = ({ products, quantityById, setQuantityById, onAddToCart, onOrder, onImageClick, onReview, isLoggedIn }) => {
   return (
     <div style={gridStyle}>
       {products.map((p) => (
         <div key={p.id} style={cardStyle} onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.12)')} onMouseLeave={(e) => (e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.08)')}>
           {p.imageDataUrl ? (
-            <img alt={p.name} src={p.imageDataUrl} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, marginBottom: 12 }} />
+            <img 
+              alt={p.name} 
+              src={p.imageDataUrl} 
+              onClick={() => onImageClick && onImageClick(p)}
+              style={{ 
+                width: '100%', 
+                height: 140, 
+                objectFit: 'cover', 
+                borderRadius: 10, 
+                marginBottom: 12,
+                cursor: 'pointer',
+                transition: 'opacity 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+              onMouseLeave={(e) => e.target.style.opacity = '1'}
+            />
           ) : (
-            <div style={{ width: '100%', height: 140, background: '#f5f5f5', borderRadius: 10, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: '14px' }}>
+            <div 
+              onClick={() => onImageClick && onImageClick(p)}
+              style={{ 
+                width: '100%', 
+                height: 140, 
+                background: '#f5f5f5', 
+                borderRadius: 10, 
+                marginBottom: 12, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                color: '#666', 
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#e8e8e8'}
+              onMouseLeave={(e) => e.target.style.background = '#f5f5f5'}
+            >
               No Image
             </div>
           )}
@@ -119,31 +152,6 @@ const ProductGrid = ({ products, quantityById, setQuantityById, onAddToCart, onO
           {/* Action Buttons Row */}
           {isLoggedIn && (
             <div style={{ display: 'flex', gap: 8 }}>
-              <button 
-                style={{ 
-                  flex: 1,
-                  padding: '8px 12px', 
-                  background: 'transparent',
-                  color: '#5eed3a',
-                  border: '1px solid #5eed3a',
-                  borderRadius: 8,
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }} 
-                onClick={() => onMessage(p)}
-                onMouseEnter={(e) => {
-                  e.target.style.background = '#5eed3a';
-                  e.target.style.color = 'black';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                  e.target.style.color = '#5eed3a';
-                }}
-              >
-                Message
-              </button>
               <button 
                 style={{ 
                   flex: 1,
